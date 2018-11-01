@@ -5,12 +5,10 @@ import App from './App'
 import router from './router'
 import BootstrapVue from 'bootstrap-vue'
 import AxiosVue from './services/axios'
-import VueMqtt from 'vue-mqtt';
 // import store from './store'
 // import { sync } from 'vuex-router-sync'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
-
-Vue.use(VueMqtt, 'wss://m21.cloudmqtt.com:32930', {clientId: 'WebClient-' + parseInt(Math.random() * 100000),username:'xgsrcino',password:'fRKZlZtXnshN'});
+import mqtt from 'mqtt'
 
 Vue.use(BootstrapVue)
 Vue.use(AxiosVue)
@@ -45,6 +43,11 @@ Vue.mixin({
   }
 });
 
+
+
+
+// Object.defineProperty(Vue.prototype, '$mqtt', { value: mqtt });
+
 /* eslint-disable no-new */
 new Vue({
   el: '#app',
@@ -52,18 +55,41 @@ new Vue({
   data () {
     return {
       mqttOnline:false,
-      cabinet:3
+      cabinet:3,
+      $mqtt:null,
+      mqttConf:{'url':'wss://m21.cloudmqtt.com:32930','username':'xgsrcino','password':'fRKZlZtXnshN'}
     }
   },
   created(){
     console.log('created');
+    this.mqttConf = ls('mqtt',this.mqttConf);
+    this.mqttLogin();
+  },
+  methods:{
+    mqttLogin(){
+
+    this.$mqtt = mqtt.connect(this.mqttConf.url, 
+        {
+          clientId: 'WebClient-' + parseInt(Math.random() * 100000),
+          username:this.mqttConf.username,
+          password:this.mqttConf.password
+        });
     this.$mqtt.on('connect', ()=>{ this.mqttOnline = true })
     this.$mqtt.on('offline', ()=>{ this.mqttOnline = false })
-  },
-  beforeDestroy(){
-    this.$mqtt.off('connect', ()=>{ this.mqttOnline = true })
-    this.$mqtt.off('offline', ()=>{ this.mqttOnline = false })
+
+    },
   },
   components: { App },
   template: '<App/>'
 })
+
+
+function ls(key,default_){
+  if(localStorage.getItem(key)){
+    return JSON.parse(localStorage.getItem(key))   
+  } else {
+    localStorage.setItem(key,JSON.stringify(default_));
+    return default_;
+  }
+  
+}
